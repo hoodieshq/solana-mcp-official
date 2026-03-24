@@ -1,8 +1,5 @@
-import * as dotenv from 'dotenv';
-
+import 'dotenv/config';
 import { createMcp } from '../lib';
-
-dotenv.config();
 
 function handler(req: Request) {
     return createMcp()(req);

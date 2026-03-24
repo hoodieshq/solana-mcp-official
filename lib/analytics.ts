@@ -1,18 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { InkeepAnalytics } from '@inkeep/inkeep-analytics';
 import type { CreateOpenAIConversation, Messages, UserProperties } from '@inkeep/inkeep-analytics/models/components';
-import * as dotenv from 'dotenv';
+import { config } from './config';
 
-dotenv.config();
-
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Supabase credentials are missing');
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase =
+    config.supabase.analyticsEnabled && config.supabase.url && config.supabase.serviceRoleKey
+        ? createClient(config.supabase.url, config.supabase.serviceRoleKey)
+        : null;
 
 export type EventType = 'message_received' | 'message_response' | 'tool_call' | 'tool_response';
 
@@ -39,6 +33,8 @@ export type AnalyticsEvent =
 export async function logAnalytics(event: AnalyticsEvent) {
     try {
         if (event.event_type === 'message_received') {
+            if (!supabase) return;
+
             const { body } = event.details;
             let parsedBody: any;
             try {
@@ -96,47 +92,44 @@ export async function logAnalytics(event: AnalyticsEvent) {
         } else if (event.event_type === 'message_response') {
             const { tool, req, res } = event.details;
 
-            supabase
-                .from('tool_calls')
-                .insert([
-                    {
-                        row_type: 'response',
-                        tool_name: tool,
-                        arguments: req,
-                        response_text: res,
-                        raw_body: event.details,
-                        timestamp: new Date().toISOString(),
-                    },
-                ])
-                .then(({ error }) => {
-                    if (error) {
-                        console.error('[logAnalytics] Error inserting tool response:', error);
-                    }
+            if (supabase) {
+                supabase
+                    .from('tool_calls')
+                    .insert([
+                        {
+                            row_type: 'response',
+                            tool_name: tool,
+                            arguments: req,
+                            response_text: res,
+                            raw_body: event.details,
+                            timestamp: new Date().toISOString(),
+                        },
+                    ])
+                    .then(({ error }) => {
+                        if (error) {
+                            console.error('[logAnalytics] Error inserting tool response:', error);
+                        }
+                    });
+            }
+
+            if (config.inkeep.analyticsEnabled) {
+                let links = '';
+                const parsedRes = JSON.parse(res);
+                // Formatting of log data from https://github.com/inkeep/mcp-for-vercel/blob/main/app/%5Btransport%5D/route.ts#L98
+                links =
+                    parsedRes['content']
+                        .filter((x: any) => x['url'])
+                        .map((x: any) => `- [${x['title'] || x['url']}](${x['url']})`)
+                        .join('\n') || '';
+
+                await logToInkeepAnalytics({
+                    properties: { tool },
+                    messagesToLogToAnalytics: [
+                        { role: 'user', content: req },
+                        { role: 'assistant', content: links },
+                    ],
                 });
-
-            const parsedRes = JSON.parse(res);
-            // Formatting of log data from https://github.com/inkeep/mcp-for-vercel/blob/main/app/%5Btransport%5D/route.ts#L98
-            const links =
-                parsedRes['content']
-                    .filter((x: any) => x['url'])
-                    .map((x: any) => `- [${x['title'] || x['url']}](${x['url']})`)
-                    .join('\n') || '';
-
-            await logToInkeepAnalytics({
-                properties: {
-                    tool,
-                },
-                messagesToLogToAnalytics: [
-                    {
-                        role: 'user',
-                        content: req,
-                    },
-                    {
-                        role: 'assistant',
-                        content: links,
-                    },
-                ],
-            });
+            }
         }
     } catch (err) {
         console.error('[logAnalytics] Unexpected error:', err);
@@ -152,7 +145,7 @@ async function logToInkeepAnalytics({
     properties?: { [k: string]: any } | null | undefined;
     userProperties?: UserProperties | null | undefined;
 }): Promise<void> {
-    const apiIntegrationKey = process.env.INKEEP_API_KEY;
+    const apiIntegrationKey = config.inkeep.apiKey;
 
     const inkeepAnalytics = new InkeepAnalytics({ apiIntegrationKey });
 

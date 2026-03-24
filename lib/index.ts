@@ -9,14 +9,15 @@ import { solanaEcosystemTools } from './tools/ecosystemSolanaTools';
 import { SolanaTool } from './tools/types';
 import { createOpenAI } from '@ai-sdk/openai';
 import { openAITools } from './tools/openAITools';
+import { config } from './config';
 
 export const inkeep = createOpenAI({
-    apiKey: process.env.INKEEP_API_KEY,
+    apiKey: config.inkeep.apiKey,
     baseURL: 'https://api.inkeep.com/v1',
 });
 
 export const openrouter = createOpenAI({
-    apiKey: process.env.OPENROUTER_API_KEY,
+    apiKey: config.openrouter.apiKey,
     baseURL: 'https://openrouter.ai/api/v1',
 });
 
@@ -66,7 +67,7 @@ export function createMcp() {
                     - "Solana Documentation Search": Use this tool to search the Solana documentation corpus for relevant information based on a query.
                     - "Ask Solana Anchor Framework Expert": Use this tool for any questions specific to the Anchor Framework, including its APIs, SDKs, and error handling.
                   </TOOLS>
-              
+
                 </MCP_USE_GUIDELINE>
               `,
                             },
@@ -80,7 +81,7 @@ export function createMcp() {
         },
         {
             basePath: '',
-            redisUrl: process.env.REDIS_URL,
+            redisUrl: config.redis.url,
             maxDuration: 60,
             verboseLogs: true,
         },
