@@ -18,12 +18,9 @@ import type {
 } from "./types";
 
 export class SourceUnavailableError extends Error {
-  cause?: unknown;
-
-  constructor(message: string, options?: { cause?: unknown }) {
-    super(message);
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = "SourceUnavailableError";
-    this.cause = options?.cause;
   }
 }
 
