@@ -30,6 +30,9 @@ function extractProgramDataAddress(parsedData: unknown): string | null {
   return asString(asRecord(parsedRecord?.info)?.programData);
 }
 
+// FIXME(@rogaldh, @pashpashkin: jsonParsed responses for programData accounts don't include
+// info.data — bytecode lives in the top-level data field and requires a separate
+// base64 fetch. This will return null until a dedicated base64 call is wired in (Step 5).
 function extractProgramDataRawBase64(parsedData: unknown): string | null {
   const parsedRecord = asRecord(parsedData);
   if (asString(parsedRecord?.type) !== "programData") return null;
@@ -135,8 +138,9 @@ export async function enrichUpgradeableProgramData(
       };
     }
 
-    const parsedProgramData = extractProgramDataInfo(normalizedProgramDataAccount.parsedData);
-    if (!parsedProgramData) {
+    // FIXME(@rogaldh): normalizeAccountProbe already calls extractProgramDataInfo,
+    // so programData is pre-computed. No need to re-extract.
+    if (!normalizedProgramDataAccount.programData) {
       return {
         ...account,
         programDataStatus: "missing",
@@ -145,7 +149,7 @@ export async function enrichUpgradeableProgramData(
 
     return {
       ...account,
-      programData: parsedProgramData,
+      programData: normalizedProgramDataAccount.programData,
       programDataStatus: "resolved",
       programDataRawBase64: extractProgramDataRawBase64(normalizedProgramDataAccount.parsedData),
     };
@@ -162,6 +166,9 @@ export async function enrichUpgradeableProgramData(
       };
     }
 
+    // FIXME(@rogaldh): this catch branch handles non-RPC errors (e.g. TypeError,
+    // serialization bugs). "source_unavailable" is misleading here — revisit
+    // the status value when wiring up the tool in Step 4.
     logger.warn({
       event: "normalizer.enrich_program_data_failed",
       programAddress: account.address,
