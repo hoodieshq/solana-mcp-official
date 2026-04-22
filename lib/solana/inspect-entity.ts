@@ -17,7 +17,7 @@ import type {
   SecurityMetadataResult,
   VerificationResult,
 } from "./types";
-import { resolveMetaplexMetadata } from "./metaplex-metadata";
+import { resolveMetaplexMetadata } from "./resolvers/metaplex-metadata";
 import { fetchAccountInfo, fetchAsset, fetchSignatureStatus, fetchTransaction, isSourceUnavailableError } from "./rpc";
 import { SUPPORTED_CLUSTERS, type SupportedCluster } from "./constants";
 import { type McpToolError, internalError, invalidArgument, notFound, sanitizeToolError, toToolResult } from "./errors";
