@@ -156,9 +156,7 @@ async function resolveAccount(
         ),
         dependencies
           .resolveProgramIdl(identifier, cluster)
-          .catch(
-            safeCatch<IdlDiscoveryResult>("idl", identifier, { status: "unknown", reason: "source_unavailable" }),
-          ),
+          .catch(safeCatch<IdlDiscoveryResult>("idl", identifier, { status: "unknown", reason: "source_unavailable" })),
       ]);
     }
 
