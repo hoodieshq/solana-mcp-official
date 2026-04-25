@@ -86,7 +86,7 @@ export type AddressTableLookup = {
 export type TransactionProbeEnvelope = {
   slot: number | bigint;
   blockTime: number | bigint | null;
-  version?: TransactionVersion;
+  version?: "legacy" | bigint | null;
   meta: {
     err: unknown;
     fee: number | bigint;
